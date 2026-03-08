@@ -1,1 +1,1 @@
-# MedicineReminder
+# MedicineReminder : ReactNative App for managing reminders for your medications
