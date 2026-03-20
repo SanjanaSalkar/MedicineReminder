@@ -55,7 +55,13 @@ const QUICK_ACTIONS = [
     color: "#C2185B",
     gradient: ["#E91E63", "#C2185B"] as [string, string],
   },
-  
+  {
+    icon: "warning-outline" as const,
+    label: "Medicine\nExpiry",
+    route: "/medications/expiry" as const,
+    color: "#F57C00",
+    gradient: ["#FF9800", "#F57C00"] as [string, string],
+  },
 ];
 
 interface CircularProgressProps {

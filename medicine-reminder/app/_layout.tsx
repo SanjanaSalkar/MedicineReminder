@@ -44,6 +44,14 @@ export default function Layout() {
             title: "",
           }}
         />
+        <Stack.Screen
+          name="medications/expiry"
+          options={{
+            headerShown: false,
+            headerBackTitle: "",
+            title: "",
+          }}
+        />
       </Stack>
     </>
   );

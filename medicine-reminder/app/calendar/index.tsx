@@ -114,7 +114,33 @@ export default function CalendarScreen() {
       (dose) => new Date(dose.timestamp).toDateString() === dateStr
     );
 
-    return medications.map((medication) => {
+    const activeMedications = medications.filter((med) => {
+      const startDate = new Date(med.startDate);
+      const durationDays = parseInt(med.duration.split(" ")[0]);
+
+      if (durationDays === -1) {
+        return selectedDate >= startDate;
+      }
+
+      const endDate = new Date(
+        startDate.getTime() + durationDays * 24 * 60 * 60 * 1000
+      );
+
+      return selectedDate >= startDate && selectedDate <= endDate;
+    });
+
+    if (activeMedications.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar-outline" size={48} color="#ccc" />
+          <Text style={styles.emptyStateText}>
+            No medications scheduled for this date
+          </Text>
+        </View>
+      );
+    }
+
+    return activeMedications.map((medication) => {
       const taken = dayDoses.some(
         (dose) => dose.medicationId === medication.id && dose.taken
       );
@@ -427,5 +453,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
     marginLeft: 4,
+  },
+  emptyState: {
+    alignItems: "center",
+    padding: 40,
+    marginTop: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 10,
+    textAlign: "center",
   },
 });

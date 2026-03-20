@@ -2,19 +2,25 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { Medication } from "./storage";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true, 
-    shouldShowList: true,   
-  }),
-});
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function registerForPushNotificationsAsync(): Promise<
   string | null
 > {
+  if (Platform.OS === "web") {
+    return null;
+  }
+
   let token: string | null = null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -52,16 +58,18 @@ export async function registerForPushNotificationsAsync(): Promise<
 export async function scheduleMedicationReminder(
   medication: Medication
 ): Promise<string | undefined> {
+  if (Platform.OS === "web") {
+    return undefined;
+  }
+
   if (!medication.reminderEnabled) return;
 
   try {
-    // Schedule notifications for each time
     for (const time of medication.times) {
       const [hours, minutes] = time.split(":").map(Number);
       const today = new Date();
       today.setHours(hours, minutes, 0, 0);
 
-      // If time has passed for today, schedule for tomorrow
       if (today < new Date()) {
         today.setDate(today.getDate() + 1);
       }
@@ -90,10 +98,13 @@ export async function scheduleMedicationReminder(
 export async function scheduleRefillReminder(
   medication: Medication
 ): Promise<string | undefined> {
+  if (Platform.OS === "web") {
+    return undefined;
+  }
+
   if (!medication.refillReminder) return;
 
   try {
-    // Schedule a notification when supply is low
     if (medication.currentSupply <= medication.refillAt) {
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
@@ -101,7 +112,7 @@ export async function scheduleRefillReminder(
           body: `Your ${medication.name} supply is running low. Current supply: ${medication.currentSupply}`,
           data: { medicationId: medication.id, type: "refill" },
         },
-        trigger: null, // Show immediately
+        trigger: null,
       });
 
       return identifier;
@@ -115,6 +126,10 @@ export async function scheduleRefillReminder(
 export async function cancelMedicationReminders(
   medicationId: string
 ): Promise<void> {
+  if (Platform.OS === "web") {
+    return;
+  }
+
   try {
     const scheduledNotifications =
       await Notifications.getAllScheduledNotificationsAsync();
@@ -137,11 +152,12 @@ export async function cancelMedicationReminders(
 export async function updateMedicationReminders(
   medication: Medication
 ): Promise<void> {
-  try {
-    // Cancel existing reminders
-    await cancelMedicationReminders(medication.id);
+  if (Platform.OS === "web") {
+    return;
+  }
 
-    // Schedule new reminders
+  try {
+    await cancelMedicationReminders(medication.id);
     await scheduleMedicationReminder(medication);
     await scheduleRefillReminder(medication);
   } catch (error) {

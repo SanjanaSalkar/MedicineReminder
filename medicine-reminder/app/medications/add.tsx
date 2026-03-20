@@ -64,6 +64,7 @@ export default function AddMedicationScreen() {
     frequency: "",
     duration: "",
     startDate: new Date(),
+    expiryDate: undefined as Date | undefined,
     times: ["09:00"],
     notes: "",
     reminderEnabled: true,
@@ -72,6 +73,7 @@ export default function AddMedicationScreen() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showExpiryDatePicker, setShowExpiryDatePicker] = useState(false);
   const [selectedFrequency, setSelectedFrequency] = useState("");
   const [selectedDuration, setSelectedDuration] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,14 +104,17 @@ export default function AddMedicationScreen() {
   const handleSave = async () => {
     try {
       if (!validateForm()) {
-        Alert.alert("Error", "Please fill in all required fields correctly");
+        if (Platform.OS === "web") {
+          alert("Please fill in all required fields correctly");
+        } else {
+          Alert.alert("Error", "Please fill in all required fields correctly");
+        }
         return;
       }
 
       if (isSubmitting) return;
       setIsSubmitting(true);
 
-      // Generate a random color
       const colors = ["#4CAF50", "#2196F3", "#FF9800", "#E91E63", "#9C27B0"];
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -121,35 +126,44 @@ export default function AddMedicationScreen() {
         refillAt: 0,
         refillReminder: false,
         startDate: form.startDate.toISOString(),
+        expiryDate: form.expiryDate?.toISOString(),
         color: randomColor,
       };
 
       await addMedication(medicationData);
 
-      // Schedule reminders if enabled
       if (medicationData.reminderEnabled) {
         await scheduleMedicationReminder(medicationData);
       }
 
-      Alert.alert(
-        "Success",
-        "Medication added successfully",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back(),
-          },
-        ],
-        { cancelable: false }
-      );
+      if (Platform.OS === "web") {
+        alert("Medication added successfully");
+        router.back();
+      } else {
+        Alert.alert(
+          "Success",
+          "Medication added successfully",
+          [
+            {
+              text: "OK",
+              onPress: () => router.back(),
+            },
+          ],
+          { cancelable: false }
+        );
+      }
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert(
-        "Error",
-        "Failed to save medication. Please try again.",
-        [{ text: "OK" }],
-        { cancelable: false }
-      );
+      if (Platform.OS === "web") {
+        alert("Failed to save medication. Please try again.");
+      } else {
+        Alert.alert(
+          "Error",
+          "Failed to save medication. Please try again.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -164,7 +178,8 @@ export default function AddMedicationScreen() {
       times: selectedFreq?.times || [],
     }));
     if (errors.frequency) {
-      setErrors((prev) => ({ ...prev, frequency: "" }));
+      const { frequency, ...rest } = errors;
+      setErrors(rest);
     }
   };
 
@@ -172,7 +187,8 @@ export default function AddMedicationScreen() {
     setSelectedDuration(dur);
     setForm((prev) => ({ ...prev, duration: dur }));
     if (errors.duration) {
-      setErrors((prev) => ({ ...prev, duration: "" }));
+      const { duration, ...rest } = errors;
+      setErrors(rest);
     }
   };
 
@@ -290,7 +306,8 @@ export default function AddMedicationScreen() {
                 onChangeText={(text) => {
                   setForm({ ...form, name: text });
                   if (errors.name) {
-                    setErrors({ ...errors, name: "" });
+                    const { name, ...rest } = errors;
+                    setErrors(rest);
                   }
                 }}
               />
@@ -307,7 +324,8 @@ export default function AddMedicationScreen() {
                 onChangeText={(text) => {
                   setForm({ ...form, dosage: text });
                   if (errors.dosage) {
-                    setErrors({ ...errors, dosage: "" });
+                    const { dosage, ...rest } = errors;
+                    setErrors(rest);
                   }
                 }}
               />
@@ -351,6 +369,33 @@ export default function AddMedicationScreen() {
                 onChange={(event, date) => {
                   setShowDatePicker(false);
                   if (date) setForm({ ...form, startDate: date });
+                }}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowExpiryDatePicker(true)}
+            >
+              <View style={styles.dateIconContainer}>
+                <Ionicons name="warning-outline" size={20} color="#f3a846" />
+              </View>
+              <Text style={styles.dateButtonText}>
+                {form.expiryDate
+                  ? `Expires ${form.expiryDate.toLocaleDateString()}`
+                  : "Set Expiry Date (Optional)"}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+
+            {showExpiryDatePicker && (
+              <DateTimePicker
+                value={form.expiryDate || new Date()}
+                mode="date"
+                minimumDate={new Date()}
+                onChange={(event, date) => {
+                  setShowExpiryDatePicker(false);
+                  if (date) setForm({ ...form, expiryDate: date });
                 }}
               />
             )}
